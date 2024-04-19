@@ -1,8 +1,63 @@
+"use client";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import supabaseBrowserClient from "@/utils/supabase/client";
 
+interface UserInterface {
+  name: string;
+  email: string;
+}
+
+const supabase = supabaseBrowserClient();
 export default function Home() {
+  const [user, setUser] = useState<UserInterface | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: user, error } = await supabase.auth.getUser();
+
+        if (error) {
+          throw error;
+        }
+        return user;
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        return null;
+      }
+    };
+
+    const fetchUser = async () => {
+      const currentUser = await getUser();
+      if (currentUser) {
+        setUser({
+          name: currentUser.user.user_metadata.name || "",
+          email: currentUser.user.email || "",
+        });
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      setUser(null); // Reset user state after logout
+      window.location.reload();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      {user && <button onClick={logout}>logout</button>}
+      <p className="text-3xl text-white">{user && user.name}</p>
+      <p className="text-3xl text-white">{user && user.email}</p>
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
           Get started by editing&nbsp;
